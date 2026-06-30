@@ -4,12 +4,20 @@ import { generateAgent, updateAgent } from '../services/api'
 import '../components/UI.css'
 
 export default function BuilderChat() {
-  const { state, update } = useApp()
+  const { state, update, newChat } = useApp()
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
   const hasProfile = !!state.assistantProfile
+  const hasChatContent = state.chatMessages.length > 0 || hasProfile
+
+  function handleNewChat() {
+    if (loading) return
+    newChat()
+    setInput('')
+    setError('')
+  }
 
   async function handleSubmit() {
     const text = input.trim()
@@ -62,12 +70,24 @@ export default function BuilderChat() {
 
   return (
     <div>
-      <div className="page-header">
-        <h2>Builder Chat</h2>
-        <p>
-          Describe your voice assistant in natural language.{' '}
-          {hasProfile ? 'Send updates to refine it.' : 'Start by describing what you need.'}
-        </p>
+      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem' }}>
+        <div>
+          <h2>Builder Chat</h2>
+          <p>
+            Describe your voice assistant in natural language.{' '}
+            {hasProfile ? 'Send updates to refine it.' : 'Start by describing what you need.'}
+          </p>
+        </div>
+        {hasChatContent && (
+          <button
+            className="btn btn-secondary"
+            onClick={handleNewChat}
+            disabled={loading}
+            style={{ flexShrink: 0 }}
+          >
+            New Chat
+          </button>
+        )}
       </div>
 
       {error && <div className="alert alert-error">{error}</div>}

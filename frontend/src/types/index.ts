@@ -54,8 +54,6 @@ export interface AppState {
   callSimulation: CallSimulationState
 }
 
-export const STORAGE_KEY = 'voice-ai-assistant-state'
-
 export const defaultCallSimulationState: CallSimulationState = {
   selectedLeadId: null,
   callActive: false,

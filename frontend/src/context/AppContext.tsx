@@ -5,15 +5,15 @@ import type { AppState } from '../types'
 interface AppContextValue {
   state: AppState
   update: (patch: Partial<AppState> | ((prev: AppState) => Partial<AppState>)) => void
-  reset: () => void
+  newChat: () => void
 }
 
 const AppContext = createContext<AppContextValue | null>(null)
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const { state, update, reset } = useAppState()
+  const { state, update, newChat } = useAppState()
   return (
-    <AppContext.Provider value={{ state, update, reset }}>
+    <AppContext.Provider value={{ state, update, newChat }}>
       {children}
     </AppContext.Provider>
   )

@@ -18,7 +18,7 @@ A full-stack MVP for creating, editing, and testing AI voice assistants using na
 | Backend  | FastAPI + Pydantic                  |
 | AI       | Google Gemini API (with mock fallback)|
 | Voice    | Browser `speechSynthesis`           |
-| Storage  | localStorage (frontend) + JSON file (meetings) |
+| Storage  | In-memory session state + JSON file (meetings on backend) |
 
 ## Quick Start (Local)
 
@@ -167,7 +167,7 @@ You can also use the included `backend/render.yaml` blueprint for one-click setu
 
 The backend `gemini_service.py` is designed as a swappable AI layer. To integrate real telephony later (Vapi, Twilio, Retell, ElevenLabs), replace the simulation endpoint with provider webhooks while keeping the same assistant profile schema.
 
-Frontend state persists in `localStorage`. Meetings also sync to `backend/data/meetings.json`.
+Frontend chat and assistant state live in memory only and reset on page reload. Meetings sync to `backend/data/meetings.json`.
 
 ## Demo Flow
 
