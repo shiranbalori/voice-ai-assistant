@@ -6,7 +6,7 @@ import type {
   Meeting,
 } from '../types'
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/$/, '')
+const API_BASE = 'https://voice-ai-assistant-4g2j.onrender.com/api'
 
 console.log('API_BASE =', API_BASE)
 
