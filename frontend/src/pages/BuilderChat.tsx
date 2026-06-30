@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useApp } from '../context/AppContext'
 import { generateAgent, updateAgent } from '../services/api'
+import type { AssistantProfile } from '../types'
 import '../components/UI.css'
 
 export default function BuilderChat() {
@@ -27,36 +28,49 @@ export default function BuilderChat() {
     setLoading(true)
 
     const userMsg = { role: 'user' as const, content: text }
-    const newMessages = [...state.chatMessages, userMsg]
-    update({ chatMessages: newMessages })
+    update((prev) => ({
+      chatMessages: [...prev.chatMessages, userMsg],
+    }))
     setInput('')
 
     try {
-      if (hasProfile && state.assistantProfile) {
-        const profile = await updateAgent(state.assistantProfile, text, newMessages)
-        update({
+      const currentProfile = state.assistantProfile
+      const messagesForApi = [...state.chatMessages, userMsg]
+
+      let profile: AssistantProfile
+      if (currentProfile) {
+        profile = await updateAgent(currentProfile, text, messagesForApi)
+        console.log('[BuilderChat] updateAgent profile received:', profile)
+        console.log('[BuilderChat] assistantProfile.name:', profile.name)
+
+        update((prev) => ({
           assistantProfile: profile,
           chatMessages: [
-            ...newMessages,
+            ...prev.chatMessages,
             { role: 'assistant', content: `Assistant updated! "${profile.name}" is ready with your changes.` },
           ],
-        })
+        }))
       } else {
-        const profile = await generateAgent(text, newMessages)
-        update({
+        profile = await generateAgent(text, messagesForApi)
+        console.log('[BuilderChat] generateAgent profile received:', profile)
+        console.log('[BuilderChat] assistantProfile.name:', profile.name)
+
+        update((prev) => ({
           assistantProfile: profile,
           chatMessages: [
-            ...newMessages,
+            ...prev.chatMessages,
             {
               role: 'assistant',
               content: `I've created "${profile.name}" — a ${profile.business_type} voice assistant. Check the Assistant Profile page to review details.`,
             },
           ],
-        })
+        }))
       }
     } catch (e) {
+      console.error('[BuilderChat] handleSubmit error:', e)
       setError(e instanceof Error ? e.message : 'Something went wrong')
     } finally {
+      console.log('[BuilderChat] clearing loading state')
       setLoading(false)
     }
   }

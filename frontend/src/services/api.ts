@@ -6,20 +6,96 @@ import type {
   Meeting,
 } from '../types'
 
-const API_BASE = 'https://voice-ai-assistant-4g2j.onrender.com/api'
+const API_BASE = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/$/, '')
 
-console.log('API_BASE =', API_BASE)
+const REQUEST_TIMEOUT_MS = 120_000
+
+function parseAssistantProfile(json: unknown): AssistantProfile {
+  console.log('[api] parsed JSON for assistant profile:', json)
+
+  const root = json && typeof json === 'object' ? (json as Record<string, unknown>) : null
+  const source =
+    root?.profile ??
+    root?.assistant_profile ??
+    root?.assistantProfile ??
+    root?.data ??
+    json
+
+  if (!source || typeof source !== 'object') {
+    throw new Error('Invalid assistant profile response shape')
+  }
+
+  const p = source as Record<string, unknown>
+  const profile: AssistantProfile = {
+    name: String(p.name ?? 'Sales Assistant'),
+    business_type: String(p.business_type ?? p.businessType ?? 'General'),
+    personality: String(p.personality ?? 'Professional and friendly'),
+    opening_message: String(
+      p.opening_message ?? p.openingMessage ?? 'Hello! How can I help you today?'
+    ),
+    qualification_questions: Array.isArray(p.qualification_questions)
+      ? p.qualification_questions.map(String)
+      : Array.isArray(p.qualificationQuestions)
+        ? p.qualificationQuestions.map(String)
+        : [],
+    booking_rules: String(
+      p.booking_rules ?? p.bookingRules ?? 'Book a meeting when the lead shows clear interest.'
+    ),
+    call_script: String(p.call_script ?? p.callScript ?? ''),
+  }
+
+  console.log('[api] normalized assistantProfile.name:', profile.name)
+  return profile
+}
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`, {
-    headers: { 'Content-Type': 'application/json' },
-    ...options,
-  })
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ detail: res.statusText }))
-    throw new Error(err.detail || 'Request failed')
+  const url = `${API_BASE}${path}`
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
+
+  let res: Response
+  try {
+    res = await fetch(url, {
+      headers: { 'Content-Type': 'application/json' },
+      ...options,
+      signal: controller.signal,
+    })
+  } catch (err) {
+    if (err instanceof DOMException && err.name === 'AbortError') {
+      throw new Error('Request timed out. Please try again.')
+    }
+    throw err
+  } finally {
+    clearTimeout(timeoutId)
   }
-  return res.json()
+
+  const rawText = await res.text()
+  console.log('[api] raw fetch response', { path, status: res.status, url, body: rawText })
+
+  if (!res.ok) {
+    let detail = res.statusText
+    try {
+      const errJson = rawText ? JSON.parse(rawText) : null
+      if (errJson && typeof errJson === 'object' && 'detail' in errJson) {
+        detail = String((errJson as { detail: unknown }).detail)
+      }
+    } catch {
+      detail = rawText || detail
+    }
+    throw new Error(detail || 'Request failed')
+  }
+
+  let json: unknown = null
+  if (rawText) {
+    try {
+      json = JSON.parse(rawText)
+    } catch {
+      throw new Error(`Invalid JSON response from ${path}`)
+    }
+  }
+
+  console.log('[api] parsed JSON', { path, json })
+  return json as T
 }
 
 export async function checkHealth(): Promise<{ status: string; mode: string; gemini_configured: boolean }> {
@@ -30,10 +106,11 @@ export async function generateAgent(
   description: string,
   messages: ChatMessage[]
 ): Promise<AssistantProfile> {
-  return request('/generate-agent', {
+  const json = await request<unknown>('/generate-agent', {
     method: 'POST',
     body: JSON.stringify({ description, messages }),
   })
+  return parseAssistantProfile(json)
 }
 
 export async function updateAgent(
@@ -41,7 +118,7 @@ export async function updateAgent(
   updateMessage: string,
   messages: ChatMessage[]
 ): Promise<AssistantProfile> {
-  return request('/update-agent', {
+  const json = await request<unknown>('/update-agent', {
     method: 'POST',
     body: JSON.stringify({
       current_profile: currentProfile,
@@ -49,6 +126,7 @@ export async function updateAgent(
       messages,
     }),
   })
+  return parseAssistantProfile(json)
 }
 
 export async function simulateCall(params: {
