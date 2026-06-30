@@ -211,7 +211,7 @@ async def generate_agent(description: str, messages: list[ChatMessage]) -> Assis
 
     genai = _get_genai()
     genai.configure(api_key=_get_api_key())
-    model = genai.GenerativeModel("gemini-2.0-flash")
+    model = genai.GenerativeModel("gemini-1.5-flash")
 
     context = "\n".join(f"{m.role}: {m.content}" for m in messages)
     prompt = f"""You are an expert at designing AI voice sales assistants.
@@ -248,7 +248,7 @@ async def update_agent(
 
     genai = _get_genai()
     genai.configure(api_key=_get_api_key())
-    model = genai.GenerativeModel("gemini-2.0-flash")
+    model = genai.GenerativeModel("gemini-1.5-flash")
 
     context = "\n".join(f"{m.role}: {m.content}" for m in messages)
     prompt = f"""Update this AI voice assistant profile based on the user's request.
@@ -288,7 +288,7 @@ async def simulate_call_turn(
 
     genai = _get_genai()
     genai.configure(api_key=_get_api_key())
-    model = genai.GenerativeModel("gemini-2.0-flash")
+    model = genai.GenerativeModel("gemini-1.5-flash")
 
     history_text = "\n".join(f"{m.role}: {m.content}" for m in history)
     prompt = f"""You are simulating an outbound sales call as this AI voice assistant.
